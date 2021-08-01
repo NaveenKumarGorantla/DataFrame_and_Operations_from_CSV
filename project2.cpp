@@ -53,6 +53,12 @@ public:
 }
 ;
 
+class MyException : public invalid_argument {
+	const char* what() const throw () {
+		return "C++ Exception";
+	}
+};
+
 DataFrame::DataFrame()
 {
 	data = {};
@@ -79,52 +85,55 @@ void DataFrame::readCSV(string filename, string headerPresence)
 {
 	ifstream ip(filename);
 
-	if (!ip.is_open()) 
+	if (!ip.is_open())
 	{
-		cout << " Error file open " <<'\n';
+		cout << " Error file open " << '\n';
 	}
-
-	string name;
-	string sex;
-	string age;
-	string height;
-	string weight;
-	string city;
-	
 	int i = 0;
-	while ( ip.good())
+	while (ip.good())
 	{
-		getline(ip, name, ',');
-		getline(ip, sex, ',');
-		getline(ip, age, ',');
-		getline(ip, height, ',');
-		getline(ip, weight, ',');
-		getline(ip, city, '\n');
-
-		int j = 0;
-		if (headerPresence == "false") 
+		string input;
+		if (headerPresence == "false")
 		{
-			data[i][0] = name;
-			data[i][1] = sex;
-			data[i][2] = age;
-			data[i][3] = height;
-			data[i][4] = weight;
-			data[i][5] = city;
-			i = i + 1;
+			for (int i = 0; i < noRows; i++)
+			{
+				for ( int j = 0 ; j < noCols ; j++)
+				{
+					if (j != noCols - 1)
+					{
+						getline(ip, input, ',');
+						data[i][j] = input;
+					}
+					else
+					{
+						getline(ip, input, '\n');
+						data[i][j] = input;
+					}
+				}
+			}
 		}
 
-		if (headerPresence == "true")
+		if (headerPresence == "true") 
 		{
-			headers[0] = name;
-			headers[1] = sex;
-			headers[2] = age;
-			headers[3] = height;
-			headers[4] = weight;
-			headers[5] = city;
-
+			for (int i = 0; i < noCols; i++)
+			{
+				if (i != noCols - 1)
+				{
+					getline(ip, input, ',');
+					headers[i] = input;
+				}
+				else
+				{
+					getline(ip, input, '\n');
+					headers[i] = input;
+				}
+			}
 			headerPresence = "false";
 		}
+		
+
 	}
+
 }
 
 void DataFrame::display()
@@ -141,8 +150,8 @@ void DataFrame::display()
 		cout << endl;
 		
 	}
-	/*cout << "\n" ;*/
 }
+
 void DataFrame::display1()
 {
 	cout << "\n";
@@ -156,7 +165,6 @@ void DataFrame::display1()
 	}
 	
 }
-
 
 string* DataFrame::searchRecord(string name)
 {
@@ -262,74 +270,70 @@ double DataFrame::findAverage(int colNumber)
 	}
 	int avg = 0;
 	int count = 0;
-	try {
-		string x = getHeader(colNumber);
-		if (x != "Name" && x != "Sex" && x != "City")
-		{
-			for (int i = 0; i < noRows; i++)
-			{
-				count = count + stoi (data[i][colNumber]);
-			}
-
-			avg = count / noRows;
-			cout << "Average of " + x + " is " + to_string(avg) << endl;
-		}
-		else 
-		{
-			string message = "Average for " + x + " cannot be found since it is nan";
-			throw message ;
-		}
-	}
-	catch ( const string msg)
+	string x = getHeader(colNumber);
+	try
 	{
-		cerr << msg << endl;
+		int c = stoi(data[0][colNumber]);
 	}
+	catch (invalid_argument e)
+	{
+		string message = "Average for " + x + " cannot be found since it is nan";
+		cout << message << endl;
+		return 0.0;
+
+	}
+
+	for (int i = 0; i < noRows; i++)
+	{
+		count = count + stoi(data[i][colNumber]);
+
+	}
+	avg = count / noRows;
+	cout << "Average of " + x + " is " + to_string(avg) << endl;
+
 	return 0.0;
 }
 
 double DataFrame::findMax(int colNumber)
-{
+{	
 	if (colNumber == -1)
 	{
 		cout << "Header not found" << endl;
 		return 0.0;
 	}
+	string column_name = getHeader(colNumber);
+	try
+	{
+		int c = stoi(data[0][colNumber]);
+	}
+	catch (invalid_argument e)
+	{
+		string message = "Max for " + column_name + " cannot be found since it is nan";
+		cout << message << endl;
+		return 0.0;
+	}
+	int i, j, min;
+	string temp1;
 	string* rows = new string[noRows];
 	for (int i = 0; i < noRows; i++)
 	{
 		rows[i] = data[i][colNumber];
 	}
-	try {
-		string columnName = getHeader(colNumber);
-		if (columnName != "Name" && columnName != "Sex" && columnName != "City")
+	for (i = 0; i < noRows - 1; i++) {
+		min = i;
+		for (j = i + 1; j < noRows; j++)
 		{
-			int i, j, min;
-			string temp1;
-			for (i = 0; i < noRows - 1; i++) {
-				min = i;
-				for (j = i + 1; j < noRows; j++)
-				{
-					if (stoi(rows[j]) > stoi(rows[i]))
-					{
-						min = j;
-						temp1 = rows[i];
-						rows[i] = rows[min];
-						rows[min] = temp1;
-					}
-				}
+			if (stoi(rows[j]) > stoi(rows[i]))
+			{
+				min = j;
+				temp1 = rows[i];
+				rows[i] = rows[min];
+				rows[min] = temp1;
 			}
-			cout << "Max of " + columnName + " is " + rows[0] << endl;
-		}
-		else
-		{
-			string message = "Max for " + columnName + " cannot be found since it is nan";
-			throw message;
 		}
 	}
-	catch (const string msg)
-	{
-		cerr << msg << endl;
-	}
+	cout << "Max of " + column_name + " is " + rows[0] << endl;
+		
 	return 0.0;
 }
 
@@ -340,44 +344,39 @@ double DataFrame::findMin(int colNumber)
 		cout << "Header not found" << endl;
 		return 0.0;
 	}
+	string column_name = getHeader(colNumber);
+	try
+	{
+		int c = stoi(data[0][colNumber]);
+	}
+	catch (invalid_argument e)
+	{
+		string message = "Min for " + column_name + " cannot be found since it is nan";
+		cout << message << endl;
+		return 0.0;
+	}
 	string* rows = new string[noRows];
 	for (int i = 0; i < noRows; i++)
 	{
 		rows[i] = data[i][colNumber];
 	}
-	try {
-		string columnName = getHeader(colNumber);
-		if (columnName != "Name" && columnName != "Sex" && columnName != "City")
+	int i, j, min;
+	string temp1;
+	for (i = 0; i < noRows - 1; i++) {
+		min = i;
+		for (j = i + 1; j < noRows; j++)
 		{
-			int i, j, min;
-			string temp1;
-			for (i = 0; i < noRows - 1; i++) {
-				min = i;
-				for (j = i + 1; j < noRows; j++)
-				{
-					if (stoi(rows[j]) < stoi(rows[i]))
-					{
-						min = j;
-						temp1 = rows[i];
-						rows[i] = rows[min];
-						rows[min] = temp1;
-					}
-				}
+			if (stoi(rows[j]) < stoi(rows[i]))
+			{
+				min = j;
+				temp1 = rows[i];
+				rows[i] = rows[min];
+				rows[min] = temp1;
 			}
-			cout << "Min of " + columnName + " is " + rows[0] << endl;
-		}
-		else
-		{
-			string message = "Min for " + columnName + " cannot be found since it is nan";
-			throw message;
 		}
 	}
-	catch (const string msg)
-	{
-		cerr << msg << endl;
-	}
+	cout << "Min of " + column_name + " is " + rows[0] << endl;
 	return 0.0;
-
 }
 
 double DataFrame::frequency(int colNumber)
@@ -387,52 +386,45 @@ double DataFrame::frequency(int colNumber)
 		cout << "Header not found" << endl;
 		return 0.0;
 	}
-	string columnName = getHeader(colNumber);
-	try {
-		if (columnName != "Name" && columnName != "Sex" && columnName != "Height(in)")
+	string column_name = getHeader(colNumber);
+	string* columnArray = new string[noRows];
+	int res = 1;
+	columnArray[0] = data[0][colNumber];
+	for (int i = 1; i < noRows; i++) {
+		int j = 0;
+		for (j = 0; j < noRows; j++)
+			if (data[i][colNumber] == data[j][colNumber])
+				break;
+		if (i == j)
 		{
-			string message = "Frequency for " + columnName + " cannot be found since it is non categorical";
-			throw message;
-		}
-		string* columnArray = new string[noRows];
-		int res = 1;
-		columnArray[0] = data[0][colNumber];
-		for (int i = 1; i < noRows; i++) {
-			int j = 0;
-			for (j = 0; j < noRows; j++)
-				if (data[i][colNumber] == data[j][colNumber])
-					break;
-			if (i == j)
-			{
-				columnArray[res] = data[i][colNumber];
-				res++;
-			}
-		}
-		for (int i = 0; i < res; i++)
-		{
-			int count = 0;
-			for (int j = 0; j < noRows; j++)
-			{
-				if (data[j][colNumber] == columnArray[i])
-				{
-					count = count + 1;
-				}
-			}
-			cout << columnArray[i] + ": " + to_string(count) << endl;
+			columnArray[res] = data[i][colNumber];
+			res++;
 		}
 	}
-	catch (const string msg) 
+	for (int i = 0; i < res; i++)
 	{
-		cerr << msg << endl;
+		int count = 0;
+		for (int j = 0; j < noRows; j++)
+		{
+			if (data[j][colNumber] == columnArray[i])
+			{
+				count = count + 1;
+			}
+		}
+		cout << columnArray[i] + ": " + to_string(count) << endl;
 	}
 	return 0.0;
 }
 
 DataFrame::~DataFrame()
 {
+	for (int i = 0; i < noRows; i++)
+	{
+		delete[] data[i];
+	}
+	delete[] data;
+	delete[] headers;
 }
-
-
 
 
 int main()
@@ -441,352 +433,215 @@ int main()
 	string fileName;
 	string headerBool;
 	char option; // used to store the option(F or D) from the input file // get the following information from the redirected input
-	option = ' ';
 	cin >> numRows >> numCols >> headerBool >> fileName;
 	// create an object of the data frame class using the non default constructor
 	DataFrame* df = new DataFrame(numRows, numCols);
 
 	// call the readCSV method with the file name and the header presence information
-	bool var = true;
 	df->readCSV(fileName, headerBool);
-	char c;
-	cin.get(c);
-	while (!cin.eof())
+	string findName;
+	while (cin >> option)
 	{
-		string read_input = "";
-		while (c == '\n')
+		switch (option)
 		{
-			cin.get(c);			
-		}
-		
-		if (c != '\n')
-		{
-			option = c;
-			while (c != '\n')
+			cin >> findName;
+			case 'D':
 			{
-				read_input = read_input + c;
-				cin.get(c);
-			}
-		}
 
-		if (option == 'D')
-		{
-			for (int j = 0; j < numCols; j++)
-			{
-				string x = df->getHeader(j);
-				cout << x + "    ";
-			}
-			cout << endl;				
-		
-			df->display();
-		}
-		if (option == 'F')
-		{
-			string searchName;
-			for (int i = 2; i < read_input.length(); i++)
-			{
-				searchName = searchName + read_input[i];
-			}
-			df->searchRecord(searchName);
-		}
-		if (option == 'C')
-		{
-			int Length = read_input.length();
-			string* substrings = new string[5];
-			int k = 0;
-			bool v = false;
-			string substring = "";
-			int j = 0;
-			while ( j < Length)
-			{
-				if (read_input[j] != ' ')
+				for (int j = 0; j < numCols; j++)
 				{
-					substring = substring + read_input[j];
-				}
-				if (read_input[j] == ' ' || j == Length - 1)
-				{
-					if (substring != "")
+					string x = df->getHeader(j);
+					if (x == "")
 					{
-						substrings[k] = substring;
-						k = k + 1;
-						substring = "";
-					}									
+						break;
+					}
+					cout << x + "   ";
+					if (j == numCols-1)
+					{
+						cout << endl;
+					}				
 				}
-				j = j + 1;								
+				df->display();
+				break;
 			}
-			int columnLength = stoi(substrings[1]);
-			int* columnArray = new int[columnLength];
-			for ( int j = 2 ; j < columnLength + 2  ; j++)
+			case'F':
 			{
-				read_input = substrings[j];
-
+				cin >> findName;
+				df->searchRecord(findName);
+				break;
+			}
+			case 'C':
+			{
+				cin >> findName;
+				int length = stoi(findName);
+				string* substrings = new string[length];
+				int j = 0;
+				for (int i = 0; i < length; i++)
+				{
+					cin >> findName;
+					substrings[i] = findName;
+				}			
+				int* columnArray = new int[length];
+				int k = 0;
+				for (int i = 0; i < length ; i++)
+				{
+					for (int j = 0; j < numCols; j++)
+					{
+						if (df->getHeader(j) == substrings[i])
+						{
+							columnArray[k] = j;
+							k = k + 1;
+							break;
+						}
+					}
+				}
+				DataFrame* dataframe = new DataFrame(numRows, length);
+				dataframe = df->getColumns(columnArray, length);
+				dataframe->display1();
+				break;
+			}
+			case 'Q':
+			{
+				cin >> findName;
+				int column = 0;
+				bool found = false;
 				for (int i = 0; i < numCols; i++)
 				{
-					if (df->getHeader(i)== read_input)
+					if (df->getHeader(i) == findName)
 					{
-						columnArray[j - 2] = i; 
+						column = i;
+						found = true;
 						break;
 					}
 				}
-			}
-			DataFrame* dataframe = new DataFrame(numRows, columnLength);
-			dataframe = df->getColumns(columnArray, columnLength);
-			dataframe->display1();
-		}
-		if (option == 'Q')
-		{
-			int Length = read_input.length();
-			string* substrings = new string[5];
-			int k = 0;
-			bool v = false;
-			string substring = "";
-			int j = 0;
-			while (j < Length)
-			{
-				if (read_input[j] != ' ')
+				if (found == false)
 				{
-					substring = substring + read_input[j];
+					column = -1;
 				}
-				if (read_input[j] == ' ' || j == Length - 1)
+				df->frequency(column);
+				break;
+			}
+			case('A'):
+			{
+				cin >> findName;
+				int column = 0;
+				bool found = false;
+				for (int i = 0; i < numCols; i++)
 				{
-					if (substring != "")
+					if (df->getHeader(i) == findName)
 					{
-						substrings[k] = substring;
-						k = k + 1;
-						substring = "";
-					}
-				}
-				j = j + 1;
-			}
-			int column = 0;
-			bool found = false;
-			for (int i = 0; i < numCols; i++)
-			{
-				if (df->getHeader(i) == substrings[1])
-				{
-					column = i;
-					found = true;
-					break;
-				}
-			}
-			if (found == false)
-			{
-				column = -1;
-			}
-			df->frequency(column);
-		}
-		if (option == 'A')
-		{
-			int Length = read_input.length();
-			string* substrings = new string[5];
-			int k = 0;
-			bool v = false;
-			string substring = "";
-			int j = 0;
-			while (j < Length)
-			{
-				if (read_input[j] != ' ')
-				{
-					substring = substring + read_input[j];
-				}
-				if (read_input[j] == ' ' || j == Length - 1)
-				{
-					if (substring != "")
-					{
-						substrings[k] = substring;
-						k = k + 1;
-						substring = "";
-					}
-				}
-				j = j + 1;
-			}
-			int column = 0;
-			bool found = false;
-			for (int i = 0; i < numCols; i++)
-			{
-				if (df->getHeader(i) == substrings[1])
-				{
-					column = i;
-					found = true;
-					break;
-				}
-			}
-			if (found == false)
-			{
-				column = -1;
-			}
-			df->findAverage(column);
-		}
-		if (option == 'X')
-		{
-			int Length = read_input.length();
-			string* substrings = new string[5];
-			int k = 0;
-			bool v = false;
-			string substring = "";
-			int j = 0;
-			while (j < Length)
-			{
-				if (read_input[j] != ' ')
-				{
-					substring = substring + read_input[j];
-				}
-				if (read_input[j] == ' ' || j == Length - 1)
-				{
-					if (substring != "")
-					{
-						substrings[k] = substring;
-						k = k + 1;
-						substring = "";
-					}
-				}
-				j = j + 1;
-			}
-			int column = 0;
-			bool found = false;
-			for (int i = 0; i < numCols; i++)
-			{
-				if (df->getHeader(i) == substrings[1])
-				{
-					column = i;
-					found = true;
-					break;
-				}
-			}
-			if (found == false)
-			{
-				column = -1;
-			}
-			df->findMax(column);
-		}
-		if (option == 'I')
-		{
-			int Length = read_input.length();
-			string* substrings = new string[5];
-			int k = 0;
-			bool v = false;
-			string substring = "";
-			int j = 0;
-			while (j < Length)
-			{
-				if (read_input[j] != ' ')
-				{
-					substring = substring + read_input[j];
-				}
-				if (read_input[j] == ' ' || j == Length - 1)
-				{
-					if (substring != "")
-					{
-						substrings[k] = substring;
-						k = k + 1;
-						substring = "";
-					}
-				}
-				j = j + 1;
-			}
-			int column = 0;
-			bool found = false;
-			for (int i = 0; i < numCols; i++)
-			{
-				if (df->getHeader(i) == substrings[1])
-				{
-					column = i;
-					found = true;
-					break;
-				}
-			}
-			if (found == false)
-			{
-				column = -1;
-			}
-			df->findMin(column);
-		}
-		if (option == 'R')
-		{
-			int Length = read_input.length();
-			string* substrings = new string[5];
-			int k = 0;
-			bool v = false;
-			string substring = "";
-			int j = 0;
-			while (j < Length)
-			{
-				if (read_input[j] != ' ')
-				{
-					substring = substring + read_input[j];
-				}
-				if (read_input[j] == ' ' || j == Length - 1)
-				{
-					if (substring != "")
-					{
-						substrings[k] = substring;
-						k = k + 1;
-						substring = "";
-					}
-				}
-				j = j + 1;
-			}
-			int rowStart = stoi(substrings[1]);
-			int rowEnd = stoi(substrings[2]);
-			int len = rowEnd - rowStart;
-			int* rowArray = new int[2];
-			rowArray[0] = rowStart;
-			rowArray[1] = rowEnd;
-			DataFrame* dataframe = new DataFrame(len, numCols);
-			dataframe = df->getRows(rowArray, len);
-			dataframe->display();		
-			cout << "\n";
-		}
-		if (option == 'S')
-		{
-			int Length = read_input.length();
-			string* substrings = new string[8];
-			int k = 0;
-			bool v = false;
-			string substring = "";
-			int j = 0;
-			while (j < Length)
-			{
-				if (read_input[j] != ' ')
-				{
-					substring = substring + read_input[j];
-				}
-				if (read_input[j] == ' ' || j == Length - 1)
-				{
-					if (substring != "")
-					{
-						substrings[k] = substring;
-						k = k + 1;
-						substring = "";
-					}
-				}
-				j = j + 1;
-			}
-			int columnLength = stoi(substrings[1]);
-			int* columnsArray = new int[columnLength];
-			int rowStart = stoi(substrings[columnLength + 2]);
-			int rowEnd = stoi(substrings[columnLength + 3]);
-			int rowLen = rowEnd - rowStart;
-			int* rowsArray = new int[2];
-			rowsArray[0] = rowStart;
-			rowsArray[1] = rowEnd;
-			for (int i = 2; i < columnLength + 2; i++)
-			{
-				for (j = 0; j < numCols; j++)
-				{
-					if (df->getHeader(j) == substrings[i]) 
-					{
-						columnsArray[i - 2] = j;
+						column = i;
+						found = true;
 						break;
 					}
 				}
+				if (found == false)
+				{
+					column = -1;
+				}
+				df->findAverage(column);
+				break;
 			}
-			DataFrame* dataframe = new DataFrame(rowLen,columnLength);
-			dataframe = df->getRowsCols(rowsArray, rowLen, columnsArray, columnLength);
-			dataframe->display1();
-		}
-		cin.get(c);
-	}
-	
-}
+			case('X'):
+			{
+				cin >> findName;
+				int column = 0;
+				bool found = false;
+				for (int i = 0; i < numCols; i++)
+				{
+					if (df->getHeader(i) == findName)
+					{
+						column = i;
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					column = -1;
+				}
+				df->findMax(column);
+				break;
+			}
+			case'I':
+			{
+				cin >> findName;
+				int column = 0;
+				bool found = false;
+				for (int i = 0; i < numCols; i++)
+				{
+					if (df->getHeader(i) == findName)
+					{
+						column = i;
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					column = -1;
+				}
+				df->findMin(column);
+				break;
+			}
+			case'R':
+			{
+				cin >> findName;
+				int rowStart = stoi(findName);
+				cin >> findName;
+				int rowEnd = stoi(findName);
+				int len = rowEnd - rowStart;
+				int* rowArray = new int[2];
+				rowArray[0] = rowStart;
+				rowArray[1] = rowEnd;
+				DataFrame* dataframe = new DataFrame(len, numCols);
+				dataframe = df->getRows(rowArray, len);
+				dataframe->display();
+				cout << "\n";
+				break;
+			}
+			case'S':
+			{
+				cin >> findName;
+				int length = stoi(findName);
+				int* rowsArray = new int[2];
+				int* columnArray = new int[length];
+				string* substrings = new string[length];
+				int j = 0;
+				for (int i = 0; i < length; i++)
+				{
+					cin >> findName;
+					substrings[i] = findName;
+				}
+				int rowlen = 0;
+				for (int i = 0; i < 2; i++)
+				{
+					cin >> findName;
+					rowsArray[i] = stoi(findName);
+					rowlen = stoi(findName) - rowlen;
+				}
+				int k = 0;
+				for (int i = 0; i < length; i++)
+				{
+					for (int j = 0; j < numCols; j++)
+					{
+						if (df->getHeader(j) == substrings[i])
+						{
+							columnArray[k] = j;
+							k = k + 1;
+							break;
+						}
+					}
+				}
+				DataFrame* dataframe = new DataFrame(rowlen, length);
+				dataframe = df->getRowsCols(rowsArray, rowlen, columnArray, length);
+				dataframe->display1();
+				break;
+			}
 
+		}
+				
+	}
+	df->~DataFrame();
+}
+	
